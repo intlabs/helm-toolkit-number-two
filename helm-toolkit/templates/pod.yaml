@@ -1,0 +1,59 @@
+{{- define "pod_base" -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-example
+spec:
+  containers:
+    - name: ubuntu
+      command: /tmp/start.sh
+      volumeMounts:
+        - name: pod-bin
+          mountPath: /tmp/start.sh
+          subPath: start.sh
+  volumes:
+    - name: pod-bin
+      configMap:
+        name: pod-bin
+        defaultMode: "0555"
+{{- end -}}
+{{- $_ := set .Values "pod_base" ( fromYaml ( toString ( include "pod_base" . ) ) ) -}}
+
+{{- define "pod_image" -}}
+spec:
+  containers:
+    - name: ubuntu
+      image: ubuntu:trusty
+{{- end -}}
+{{- $_ := set .Values "pod_image" ( fromYaml ( toString ( include "pod_image" . ) ) ) -}}
+
+{{- define "pod_volumes" -}}
+spec:
+  containers:
+    - name: ubuntu
+      volumeMounts:
+        - name: pod-bin
+          mountPath: /tmp/stop.sh
+          subPath: stop.sh
+  volumes:
+    - name: pod-bin
+      configMap:
+        name: keystone-bin
+{{- end -}}
+{{- $_ := set .Values "pod_volumes" ( fromYaml ( toString ( include "pod_volumes" . ) ) ) -}}
+
+{{- define "pod_ports" -}}
+spec:
+  containers:
+    - name: ubuntu
+      ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+{{- end -}}
+{{- $_ := set .Values "pod_ports" ( fromYaml ( toString ( include "pod_ports" . ) ) ) -}}
+
+{{- $_ := set .Values "pod_out" dict -}}
+{{- include "helm-toolkit.utils.merge" ( dict "merge_same_named" true "values" ( tuple .Values.pod_out .Values.pod_base .Values.pod_image .Values.pod_volumes .Values.pod_ports ) ) -}}
+{{- .Values.pod_out | toYaml -}}
